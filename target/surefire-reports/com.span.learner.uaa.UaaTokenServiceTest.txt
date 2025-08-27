@@ -1,0 +1,37 @@
+-------------------------------------------------------------------------------
+Test set: com.span.learner.uaa.UaaTokenServiceTest
+-------------------------------------------------------------------------------
+Tests run: 5, Failures: 0, Errors: 3, Skipped: 0, Time elapsed: 5.712 s <<< FAILURE! -- in com.span.learner.uaa.UaaTokenServiceTest
+com.span.learner.uaa.UaaTokenServiceTest.testRestTemplateBodyIsCorrect -- Time elapsed: 0.006 s <<< ERROR!
+java.lang.IllegalArgumentException: HttpMethod is required
+	at org.springframework.util.Assert.notNull(Assert.java:181)
+	at org.springframework.web.client.RestTemplate.doExecute(RestTemplate.java:881)
+	at org.springframework.web.client.RestTemplate.execute(RestTemplate.java:801)
+	at org.springframework.web.client.RestTemplate.exchange(RestTemplate.java:683)
+	at com.span.learner.uaa.UaaTokenServiceTest.testRestTemplateBodyIsCorrect(UaaTokenServiceTest.java:115)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+
+com.span.learner.uaa.UaaTokenServiceTest.testInvalidJwtThrowsError -- Time elapsed: 0.002 s <<< ERROR!
+java.lang.IllegalArgumentException: HttpMethod is required
+	at org.springframework.util.Assert.notNull(Assert.java:181)
+	at org.springframework.web.client.RestTemplate.doExecute(RestTemplate.java:881)
+	at org.springframework.web.client.RestTemplate.execute(RestTemplate.java:801)
+	at org.springframework.web.client.RestTemplate.exchange(RestTemplate.java:683)
+	at com.span.learner.uaa.UaaTokenServiceTest.testInvalidJwtThrowsError(UaaTokenServiceTest.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+
+com.span.learner.uaa.UaaTokenServiceTest.testTokenRefreshWhenExpired -- Time elapsed: 0.001 s <<< ERROR!
+java.lang.IllegalArgumentException: HttpMethod is required
+	at org.springframework.util.Assert.notNull(Assert.java:181)
+	at org.springframework.web.client.RestTemplate.doExecute(RestTemplate.java:881)
+	at org.springframework.web.client.RestTemplate.execute(RestTemplate.java:801)
+	at org.springframework.web.client.RestTemplate.exchange(RestTemplate.java:683)
+	at com.span.learner.uaa.UaaTokenServiceTest.testTokenRefreshWhenExpired(UaaTokenServiceTest.java:88)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+
