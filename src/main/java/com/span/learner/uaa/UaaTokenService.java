@@ -41,7 +41,7 @@ public class UaaTokenService {
     public synchronized String getToken() {
         Instant now = Instant.now();
         if (cached == null || isAboutToExpire(cached.expiry, now)) {
-            cached = fetchToken(now);
+            cached = fetchToken();
         }
         return cached.token;
     }
@@ -50,7 +50,7 @@ public class UaaTokenService {
         return expiry.minus(props.grace()).isBefore(now);
     }
 
-    private CachedToken fetchToken(Instant now) {
+    private CachedToken fetchToken() {
 // Prepare HTTP headers
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
