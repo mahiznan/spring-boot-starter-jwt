@@ -6,6 +6,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Map;
@@ -50,38 +51,26 @@ public class UaaTokenService {
     }
 
     private CachedToken fetchToken(Instant now) {
-//        HttpHeaders headers = new HttpHeaders();
-//        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-
-//        Map<String, String> body = Map.of(
-//                "grant_type", "client_credentials",
-//                "client_id", props.clientId(),
-//                "client_secret", props.clientSecret()
-//        );
-
-//        HttpEntity<Map<String, String>> entity = new HttpEntity<>(body, headers);
-
-        // Prepare body
-        MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
-        body.add("grant_type", "client_credentials");
-        body.add("client_id", props.clientId());
-        body.add("client_secret", props.clientSecret());
-
-// Create HttpEntity
+// Prepare HTTP headers
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
+        // Set Basic Auth: "Authorization: Basic base64(clientId:clientSecret)"
+        String auth = props.clientId() + ":" + props.clientSecret();
+        String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8));
+        headers.set("Authorization", "Basic " + encodedAuth);
+
+        // Body: only grant_type
+        MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+        body.add("grant_type", "client_credentials");
+
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
 
-// Exchange
         ResponseEntity<UaaTokenResponse> resp = restTemplate.exchange(
                 props.url(),
                 HttpMethod.POST,
                 request,
                 UaaTokenResponse.class);
-
-//        ResponseEntity<UaaTokenResponse> resp =
-//                restTemplate.exchange(props.url(), HttpMethod.POST, entity, UaaTokenResponse.class);
 
         UaaTokenResponse tr = resp.getBody();
         if (tr == null || tr.accessToken() == null) {

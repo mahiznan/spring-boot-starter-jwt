@@ -7,16 +7,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -25,18 +22,33 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class UaaTokenServiceTest {
 
-//    @Spy
+    @Spy
     UaaTokenProps props = new UaaTokenProps("http://localhost:8083/token", "clientId", "clientSecret", null);
-//    @Mock
+    @Mock
     private RestTemplate restTemplate = new RestTemplate();
-//    @InjectMocks
-    private UaaTokenService service = new UaaTokenService(props, restTemplate);
+    @InjectMocks
+    private UaaTokenService service;
 
     private static String createJwtWithExp(long expEpochSeconds) {
+        String headerJson = """
+                {
+                "alg": "RS256",
+                "typ": "JWT"
+                }
+                """;
         String header = Base64.getUrlEncoder().withoutPadding()
-                .encodeToString("{\"alg\":\"none\"}".getBytes(StandardCharsets.UTF_8));
+                .encodeToString(headerJson.getBytes(StandardCharsets.UTF_8));
 
-        String payloadJson = String.format("{\"exp\":%d,\"scope\":[\"openid\"],\"client_id\":\"rajesh\"}", expEpochSeconds);
+        String payloadJson = """
+                {
+                  "scope": ["openid"],
+                  "authorities": ["ROLE_USER"],
+                  "jti": "Tdasged-Lsdfij32sdfjsdry8bsd",
+                  "client_id": "rajesh",
+                  "exp": %d
+                }
+                """.formatted(expEpochSeconds);
+
         String payload = Base64.getUrlEncoder().withoutPadding()
                 .encodeToString(payloadJson.getBytes(StandardCharsets.UTF_8));
 
@@ -48,8 +60,8 @@ class UaaTokenServiceTest {
         String jwt = createJwtWithExp(Instant.now().plusSeconds(300).getEpochSecond());
         UaaTokenResponse response = new UaaTokenResponse(jwt, "bearer", 300, "openid", "jti-123");
 
-//        when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(UaaTokenResponse.class)))
-//                .thenReturn(new ResponseEntity<>(response, HttpStatus.OK));
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(UaaTokenResponse.class)))
+                .thenReturn(new ResponseEntity<>(response, HttpStatus.OK));
 
         String token = service.getToken();
         assertNotNull(token);
@@ -62,8 +74,8 @@ class UaaTokenServiceTest {
         String jwt = createJwtWithExp(Instant.now().plusSeconds(300).getEpochSecond());
         UaaTokenResponse response = new UaaTokenResponse(jwt, "bearer", 300, "openid", "jti-123");
 
-//        when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(UaaTokenResponse.class)))
-//                .thenReturn(new ResponseEntity<>(response, HttpStatus.OK));
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(UaaTokenResponse.class)))
+                .thenReturn(new ResponseEntity<>(response, HttpStatus.OK));
 
         // First call fetches from UAA
         String token1 = service.getToken();
@@ -109,20 +121,38 @@ class UaaTokenServiceTest {
     @SuppressWarnings("unchecked")
     @Test
     void testRestTemplateBodyIsCorrect() {
+        // Create a fake JWT
         String jwt = createJwtWithExp(Instant.now().plusSeconds(120).getEpochSecond());
         UaaTokenResponse response = new UaaTokenResponse(jwt, "bearer", 120, "openid", "jti-321");
 
-        when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(UaaTokenResponse.class)))
+        when(restTemplate.exchange(
+                anyString(),
+                eq(HttpMethod.POST),
+                any(HttpEntity.class),
+                eq(UaaTokenResponse.class)))
                 .thenReturn(new ResponseEntity<>(response, HttpStatus.OK));
 
         service.getToken();
 
-        ArgumentCaptor<HttpEntity<Map<String, String>>> captor = ArgumentCaptor.forClass(HttpEntity.class);
-        verify(restTemplate).exchange(eq("http://uaa/token"), eq(HttpMethod.POST), captor.capture(), eq(UaaTokenResponse.class));
+        // Capture HttpEntity
+        ArgumentCaptor<HttpEntity<MultiValueMap<String, String>>> captor = ArgumentCaptor.forClass((Class) HttpEntity.class);
+        verify(restTemplate).exchange(eq("http://localhost:8083/token"), eq(HttpMethod.POST), captor.capture(), eq(UaaTokenResponse.class));
 
-        Map<String, String> body = captor.getValue().getBody();
-        assertEquals("clientId", body.get("client_id"));
-        assertEquals("clientSecret", body.get("client_secret"));
-        assertEquals("client_credentials", body.get("grant_type"));
+        HttpEntity<MultiValueMap<String, String>> requestEntity = captor.getValue();
+
+        // Verify form body
+        MultiValueMap<String, String> body = requestEntity.getBody();
+        assertNotNull(body);
+        assertEquals("client_credentials", body.getFirst("grant_type"));
+
+        // Verify headers contain Basic Auth
+        String authHeader = requestEntity.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+        assertNotNull(authHeader);
+        assertTrue(authHeader.startsWith("Basic "));
+
+        // Optionally decode Basic Auth and verify clientId and clientSecret
+        String base64Creds = authHeader.substring(6);
+        String decoded = new String(Base64.getDecoder().decode(base64Creds), StandardCharsets.UTF_8);
+        assertEquals("clientId:clientSecret", decoded);
     }
 }
